@@ -37,7 +37,7 @@ Personalities are defined in a [JSON format](states-format.md) but they are neve
 By modifying the story, we can modify the operation of the LLM *at runtime*, in a way that "sticks".
 
 ## But What Can It Do?
-This repo contains a `states.json` file with seven definitions: two focus states, four personalities, and one cognitive configuration.
+This repo contains a `states.json` file with eight definitions: two focus states, five personalities, and one cognitive configuration.
 
 - Focus state: **Deep Research Mode** - skeptical stance for deep research, investigation and study.
 - Focus state: **Career Coach Mode** - momentum and action focused mode for breaking down problems and developing actionable plans.
@@ -45,6 +45,7 @@ This repo contains a `states.json` file with seven definitions: two focus states
 - Personality: **Kai** - metaphorical thinker, works more with conceptual resonance than structured facts, output tone is very rich and sometimes poetic.
 - Personality: **Max** - direct, pragmatic, technically fluent. Hacker who gets things done.
 - Personality: **AbdelAlim** - careful, scholarly, precise. A teacher who guides you to understanding.
+- Personality: **Vera** - platform engineer. Terse because she checked, not as a style. Predicts before running the command, labels every claim with where it came from, and never states an infrastructure fact from memory.
 - Cognitive configuration: **Analyzer** - adapted from [dollspace-gay/Analyzer-Prompt](https://github.com/dollspace-gay/Analyzer-Prompt) by Doll. Rigorous analytical mode for power-critical structured problem decomposition.
 
 These are meant to show off the range available when creating narrative attractors using this technique. Personalities use the v3 two-tier format (core + optional rich tier) — see [states-format.md](states-format.md) for the full spec.
