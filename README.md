@@ -37,7 +37,7 @@ Personalities are defined in a [JSON format](states-format.md) but they are neve
 By modifying the story, we can modify the operation of the LLM *at runtime*, in a way that "sticks".
 
 ## But What Can It Do?
-This repo contains a `states.json` file with eight definitions: two focus states, five personalities, and one cognitive configuration.
+This repo ships eight definitions in the `states/` directory, one JSON file per state: two focus states, five personalities, and one cognitive configuration. The filename is the state's identifier, adding a state means adding a file, and the catalogue is read once at startup — see [states-format.md](states-format.md) for the layout.
 
 - Focus state: **Deep Research Mode** - skeptical stance for deep research, investigation and study.
 - Focus state: **Career Coach Mode** - momentum and action focused mode for breaking down problems and developing actionable plans.

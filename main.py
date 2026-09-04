@@ -1,8 +1,99 @@
 import json
+import os
+import sys
+from pathlib import Path
 from typing import Literal
 from fastmcp import FastMCP
 
-STATESFILE = "states.json"
+HERE = Path(__file__).resolve().parent
+
+# Resolved against this file rather than the working directory, so the server
+# behaves the same however it is launched.
+STATES_DIR = HERE / "states"
+
+# The pre-split monolith. Read when present so a fork carrying one still works;
+# definitions in STATES_DIR take precedence over it.
+LEGACY_STATESFILE = HERE / "states.json"
+
+# Additional directories, colon-separated. In a container these are extra
+# mounted volumes or ConfigMaps. Later directories override earlier ones.
+STATES_DIRS_ENV = "HYPERFOCUS_STATES_DIRS"
+
+
+class StateLoadError(Exception):
+    """A state definition could not be loaded. Fatal at startup by design."""
+
+
+def state_directories() -> list[Path]:
+    """Directories to scan, in ascending order of precedence."""
+    extra = os.environ.get(STATES_DIRS_ENV, "")
+    return [STATES_DIR, *(Path(p).expanduser() for p in extra.split(os.pathsep) if p)]
+
+
+def load_states() -> dict:
+    """Read every state definition once.
+
+    One state per file, keyed by filename stem — `states/Ada.json` defines the
+    state `Ada`. The stem is the identifier because it is not recoverable from
+    the data: `deep_research_mode` is named "Deep Research Mode", `Analyzer` is
+    named "Analytical AI".
+
+    Anything wrong is raised rather than skipped. The catalogue is read once at
+    startup, so a file quietly dropped here would be invisible for the whole
+    life of the process; refusing to start is the louder and cheaper failure.
+    """
+    states: dict[str, dict] = {}
+    origins: dict[str, Path] = {}
+    # Which configured source each id came from. A collision inside one source is
+    # a mistake; a collision across sources is a deliberate override.
+    sources: dict[str, int] = {}
+
+    if LEGACY_STATESFILE.is_file():
+        try:
+            data = json.loads(LEGACY_STATESFILE.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError) as exc:
+            raise StateLoadError(f"{LEGACY_STATESFILE}: {exc}") from exc
+        for state_id, state in (data.get("states") or {}).items():
+            states[state_id] = state
+            origins[state_id] = LEGACY_STATESFILE
+            sources[state_id] = -1
+
+    for source, directory in enumerate(state_directories()):
+        if not directory.is_dir():
+            continue
+        for path in sorted(directory.rglob("*.json")):
+            state_id = path.stem
+            try:
+                state = json.loads(path.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError) as exc:
+                raise StateLoadError(f"{path}: {exc}") from exc
+
+            if not isinstance(state, dict) or "type" not in state:
+                raise StateLoadError(
+                    f'{path}: not a state definition — expected a JSON object with a "type" field'
+                )
+
+            if sources.get(state_id) == source:
+                raise StateLoadError(
+                    f"{path}: duplicate state id '{state_id}', already defined by "
+                    f"{origins[state_id]} in the same directory tree"
+                )
+
+            states[state_id] = state
+            origins[state_id] = path
+            sources[state_id] = source
+
+    if not states:
+        searched = ", ".join(str(d) for d in state_directories())
+        raise StateLoadError(f"No state definitions found. Searched: {searched}")
+
+    for state_id in sorted(states):
+        print(f"hyperfocus: loaded {state_id} from {origins[state_id]}", file=sys.stderr)
+
+    return states
+
+
+STATES = load_states()
 
 
 # Set up MCP server
@@ -15,26 +106,19 @@ Warning: States persist within conversation context and may significantly alter 
 
 def get_focus(name: str) -> str:
     """Retrieve a focus state by name."""
-    with open(STATESFILE, 'r') as f:
-        data = json.load(f)
+    state = STATES.get(name)
 
-    states = data.get("states", {})
+    if state is not None and state.get("type") == "focus":
+        return json.dumps(state, indent=2)
 
-    if name in states and states[name].get("type") == "focus":
-        return json.dumps(states[name], indent=2)
-
-    return f"No focus state named '{name}' found in states file"
+    return f"No focus state named '{name}' found in the loaded states"
 
 
 def list_focus() -> list:
     """List all focus states."""
-    with open(STATESFILE, 'r') as f:
-        data = json.load(f)
-
-    states = data.get("states", {})
     return [
         (state_id, state_obj.get("seed", ""))
-        for state_id, state_obj in states.items()
+        for state_id, state_obj in STATES.items()
         if state_obj.get("type") == "focus"
     ]
 
@@ -50,15 +134,10 @@ def get_personality(name: str, scope: Literal["full", "core", "rich"] = "full") 
     Returns:
         JSON string of the requested scope, or an informative error message
     """
-    with open(STATESFILE, 'r') as f:
-        data = json.load(f)
+    if name not in STATES:
+        return f"No personality named '{name}' found in the loaded states"
 
-    states = data.get("states", {})
-
-    if name not in states:
-        return f"No personality named '{name}' found in states file"
-
-    personality = states[name]
+    personality = STATES[name]
 
     if personality.get("type") == "focus":
         return f"'{name}' is a focus state, not a personality. Use load_focus() instead."
@@ -84,13 +163,9 @@ def get_personality(name: str, scope: Literal["full", "core", "rich"] = "full") 
 
 def list_personalities() -> list:
     """List all personality configurations."""
-    with open(STATESFILE, 'r') as f:
-        data = json.load(f)
-
-    states = data.get("states", {})
     result = []
 
-    for state_id, state_obj in states.items():
+    for state_id, state_obj in STATES.items():
         if state_obj.get("type") == "focus":
             continue
         seed = ""

@@ -32,37 +32,59 @@ The format supports two types of states:
 
 ## Schema
 
-### Top Level
+### File Layout
+
+One state per file, in the `states/` directory:
+
+```
+states/
+  Ada.json
+  deep_research_mode.json
+  Signe.json
+```
+
+Each file holds a single state object directly, with no wrapper:
 
 ```json
 {
-  "format_version": "3.0.0",
-  "states": {
-    "<state_key>": { ... }
-  }
+  "type": "personality",
+  "name": "Ada",
+  "core": { ... },
+  "rich": { ... }
 }
 ```
 
-States are keyed by identifier (e.g. `"deep_research_mode"`, `"Ada"`). The key is used for selection when loading.
+**The filename is the identifier.** `states/deep_research_mode.json` defines the state `deep_research_mode`, which is what `load_focus()` and `load_personality()` take. The identifier is deliberately not read from the data, because it is not recoverable from it — `deep_research_mode` is *named* "Deep Research Mode", and `Analyzer` is named "Analytical AI".
+
+Subdirectories are scanned too, so states can be grouped however suits. Two files claiming the same identifier within one scanned tree is an error.
+
+Adding a state means adding a file. The catalogue is read once at startup, so the server must be restarted to pick it up.
+
+`format_version` may be included per file for the reader's benefit. Nothing enforces it.
+
+#### Additional directories
+
+`HYPERFOCUS_STATES_DIRS` takes a colon-separated list of further directories to scan, which is how private states are kept outside the repository and how extra volumes or ConfigMaps are mounted in a container. Later directories override earlier ones, so a state of the same name in an extra directory replaces the bundled one — an override across directories is intentional and allowed, unlike a collision inside a single tree.
+
+#### The pre-split format
+
+Earlier versions kept every state in one `states.json` with a `{"format_version", "states"}` wrapper. That file is still read when present, and `states/` takes precedence over it, so a fork carrying the monolith keeps working.
 
 ### Two-Tier Structure (Personalities)
 
+`states/Ada.json`:
+
 ```json
 {
-  "format_version": "3.0.0",
-  "states": {
-    "Ada": {
-      "type": "personality",
-      "name": "Ada",
-      "core": {
-        // Essential attractor components (~2000-2500 tokens)
-        // Always loaded
-      },
-      "rich": {
-        // Extended details (~1500-2000 tokens)
-        // Optionally loaded for sustained deep work
-      }
-    }
+  "type": "personality",
+  "name": "Ada",
+  "core": {
+    // Essential attractor components (~2000-2500 tokens)
+    // Always loaded
+  },
+  "rich": {
+    // Extended details (~1500-2000 tokens)
+    // Optionally loaded for sustained deep work
   }
 }
 ```
