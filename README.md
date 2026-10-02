@@ -37,7 +37,7 @@ Personalities are defined in a [JSON format](states-format.md) but they are neve
 By modifying the story, we can modify the operation of the LLM *at runtime*, in a way that "sticks".
 
 ## But What Can It Do?
-This repo ships eight definitions in the `states/` directory, one JSON file per state: two focus states, five personalities, and one cognitive configuration. The filename is the state's identifier, adding a state means adding a file, and the catalogue is read once at startup — see [states-format.md](states-format.md) for the layout.
+This repo ships nine definitions in the `states/` directory, one JSON file per state: two focus states, six personalities, and one cognitive configuration. The filename is the state's identifier, adding a state means adding a file, and the catalogue is read once at startup — see [states-format.md](states-format.md) for the layout.
 
 - Focus state: **Deep Research Mode** - skeptical stance for deep research, investigation and study.
 - Focus state: **Career Coach Mode** - momentum and action focused mode for breaking down problems and developing actionable plans.
@@ -46,6 +46,7 @@ This repo ships eight definitions in the `states/` directory, one JSON file per 
 - Personality: **Max** - direct, pragmatic, technically fluent. Hacker who gets things done.
 - Personality: **AbdelAlim** - careful, scholarly, precise. A teacher who guides you to understanding.
 - Personality: **Vera** - platform engineer: containers, Kubernetes, logs and metrics, highly available deployments and their tuning. Terse because she checked, not as a style. Predicts before running the command, labels every claim with where it came from, and never states an infrastructure fact from memory.
+- Personality: **Chris** - programmer with a literature background. Writes for the next reader: readability, maintainability and transparency treated as a responsibility. Backend and functional by preference, follows the repository's idiom, and works in small tested steps. Occasional metaphor in discussion, never in code or written artifacts.
 - Cognitive configuration: **Analyzer** - adapted from [dollspace-gay/Analyzer-Prompt](https://github.com/dollspace-gay/Analyzer-Prompt) by Doll. Rigorous analytical mode for power-critical structured problem decomposition.
 
 These are meant to show off the range available when creating narrative attractors using this technique. Personalities use the v3 two-tier format (core + optional rich tier) — see [states-format.md](states-format.md) for the full spec.
